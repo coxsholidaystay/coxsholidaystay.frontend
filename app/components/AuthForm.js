@@ -19,6 +19,11 @@ export default function AuthForm({ mode }) {
 
   useEffect(() => {
     let active = true;
+    const googleResult = new URLSearchParams(window.location.search).get("google");
+    if (googleResult) {
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+
     fetch(`${apiBase}/api/auth/me`, { credentials: "include" })
       .then(async (response) => {
         if (response.status === 401) return null;
@@ -27,7 +32,23 @@ export default function AuthForm({ mode }) {
         return data.user;
       })
       .then((user) => {
-        if (active && user) setCurrentUser(user);
+        if (!active) return;
+        if (user) setCurrentUser(user);
+        if (googleResult === "success" && user) {
+          setNotice(`You're signed in with Google as ${user.name}.`);
+          setNoticeIsError(false);
+        } else if (googleResult && googleResult !== "success") {
+          const messages = {
+            unavailable: "Google sign-in is not configured on the API yet.",
+            cancelled: "Google sign-in was cancelled.",
+            invalid_state: "Google sign-in expired or could not be verified. Please try again.",
+            profile_error: "Google did not provide a verified name and email address.",
+            account_exists: "An account with this email already exists. Sign in with your password instead.",
+            failed: "Google sign-in could not be completed. Please try again."
+          };
+          setNotice(messages[googleResult] || messages.failed);
+          setNoticeIsError(true);
+        }
       })
       .catch(() => {
         if (active) {
@@ -142,10 +163,7 @@ export default function AuthForm({ mode }) {
           <button
             className="google-auth-button"
             type="button"
-            onClick={() => {
-              setNotice("Google sign-in is not configured yet. Add OAuth credentials when you are ready to enable it.");
-              setNoticeIsError(true);
-            }}
+            onClick={() => window.location.assign(`${apiBase}/api/auth/google`)}
           >
             <svg viewBox="0 0 48 48" aria-hidden="true">
               <path fill="#4285F4" d="M43.6 24.5c0-1.4-.1-2.8-.4-4.1H24v7.8h11a9.4 9.4 0 0 1-4.1 6.2v5.1h6.6c3.9-3.6 6.1-8.8 6.1-15Z" />

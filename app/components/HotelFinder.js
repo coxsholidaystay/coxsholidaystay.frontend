@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import CalendarField, { getToday, shiftDate } from "./CalendarField";
 import RoomRequestButton from "./RoomRequestButton";
@@ -26,6 +26,20 @@ export default function HotelFinder({ initialHotels }) {
   const [searchMessage, setSearchMessage] = useState("");
   const [searching, setSearching] = useState(false);
   const [favoriteHotelIds, setFavoriteHotelIds] = useState(() => new Set());
+
+  useEffect(() => {
+    let active = true;
+    fetch(`${apiBase}/api/hotels`)
+      .then(async (response) => {
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Couldn't load current properties.");
+        if (active) setHotels(data.hotels);
+      })
+      .catch(() => {
+        if (active) setSearchMessage("Live hotel listings unavailable — showing our handpicked stays instead.");
+      });
+    return () => { active = false; };
+  }, []);
 
   const visibleHotels = useMemo(() => {
     if (!searchMessage.startsWith("Live search unavailable")) return hotels;

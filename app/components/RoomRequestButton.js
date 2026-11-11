@@ -2,14 +2,26 @@
 
 import { useState } from "react";
 import CalendarField, { getToday, shiftDate } from "./CalendarField";
+import GuestPicker from "./GuestPicker";
 
 const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+const roomCategories = ["Standard", "Deluxe", "Suite", "Villa", "Residence"];
+
+function getDefaultCategory(roomName, category) {
+  if (roomCategories.includes(category)) return category;
+  const name = roomName.toLowerCase();
+  if (name.includes("villa") || name.includes("residence")) return "Villa";
+  if (name.includes("suite")) return "Suite";
+  if (name.includes("deluxe")) return "Deluxe";
+  return "Standard";
+}
 
 export default function RoomRequestButton({ room, className = "search-button" }) {
   const [open, setOpen] = useState(false);
   const [checkIn, setCheckIn] = useState("");
   const [checkOut, setCheckOut] = useState("");
   const [guests, setGuests] = useState(String(Math.min(2, room.capacity)));
+  const [roomCategory, setRoomCategory] = useState(getDefaultCategory(room.name, room.category));
   const [booking, setBooking] = useState(null);
   const [bookingError, setBookingError] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -18,6 +30,7 @@ export default function RoomRequestButton({ room, className = "search-button" })
     setCheckIn("");
     setCheckOut("");
     setGuests(String(Math.min(2, room.capacity)));
+    setRoomCategory(getDefaultCategory(room.name, room.category));
     setBooking(null);
     setBookingError("");
     setOpen(true);
@@ -33,6 +46,8 @@ export default function RoomRequestButton({ room, className = "search-button" })
       roomId: room.id,
       guestName: formData.get("guestName"),
       email: formData.get("email"),
+      phone: formData.get("phone"),
+      roomCategory: formData.get("roomCategory"),
       checkIn: formData.get("bookingCheckIn"),
       checkOut: formData.get("bookingCheckOut"),
       guests: Number(formData.get("bookingGuests"))
@@ -94,7 +109,8 @@ export default function RoomRequestButton({ room, className = "search-button" })
                 <h2 id="room-request-title">Request received</h2>
                 <p>
                   Your request for {booking.room} at {booking.hotel} has been
-                  saved. Our team will follow up to confirm availability.
+                  saved as a {booking.roomCategory} category request. Our team
+                  will follow up to confirm availability.
                 </p>
                 <p className="booking-reference">
                   Reference <strong>{booking.reference}</strong>
@@ -120,6 +136,7 @@ export default function RoomRequestButton({ room, className = "search-button" })
                     <input
                       name="guestName"
                       autoComplete="name"
+                      placeholder="Your full name"
                       minLength={2}
                       maxLength={80}
                       required
@@ -131,9 +148,39 @@ export default function RoomRequestButton({ room, className = "search-button" })
                       name="email"
                       type="email"
                       autoComplete="email"
+                      placeholder="you@example.com"
                       maxLength={254}
                       required
                     />
+                  </label>
+                  <label>
+                    Phone number
+                    <input
+                      name="phone"
+                      type="tel"
+                      autoComplete="tel"
+                      placeholder="+880 1XXX-XXXXXX"
+                      inputMode="tel"
+                      pattern="\+?[0-9\s().-]{7,25}"
+                      title="Enter a phone number with 7 to 15 digits."
+                      maxLength={25}
+                      required
+                    />
+                  </label>
+                  <label>
+                    Room category
+                    <select
+                      name="roomCategory"
+                      value={roomCategory}
+                      onChange={(event) => setRoomCategory(event.target.value)}
+                      required
+                    >
+                      {roomCategories.map((category) => (
+                        <option value={category} key={category}>
+                          {category}{category === getDefaultCategory(room.name, room.category) ? " · selected room" : ""}
+                        </option>
+                      ))}
+                    </select>
                   </label>
                   <div className="booking-dates">
                     <label>
@@ -166,18 +213,12 @@ export default function RoomRequestButton({ room, className = "search-button" })
                   </div>
                   <label>
                     Guests
-                    <select
-                      name="bookingGuests"
+                    <GuestPicker
                       value={guests}
-                      onChange={(event) => setGuests(event.target.value)}
-                      required
-                    >
-                      {Array.from({ length: room.capacity }, (_, index) => index + 1).map((number) => (
-                        <option value={number} key={number}>
-                          {number} {number === 1 ? "guest" : "guests"}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={setGuests}
+                      maxGuests={room.capacity}
+                      name="bookingGuests"
+                    />
                   </label>
                   {bookingError && (
                     <p className="booking-error" role="alert">{bookingError}</p>
@@ -190,10 +231,6 @@ export default function RoomRequestButton({ room, className = "search-button" })
                     {submitting ? "Sending request..." : "Send room request"}
                     {!submitting && <span aria-hidden="true">↗</span>}
                   </button>
-                  <p className="booking-disclaimer">
-                    No login or payment is needed. We&apos;ll contact you by email
-                    to confirm availability.
-                  </p>
                 </form>
               </>
             )}

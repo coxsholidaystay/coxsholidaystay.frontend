@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
-export default function GuestPicker({ value, onChange }) {
+export default function GuestPicker({ value, onChange, maxGuests = 6, name }) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef(null);
   const guestCount = Number(value);
@@ -50,7 +50,7 @@ export default function GuestPicker({ value, onChange }) {
           <span className="guest-stepper">
             <span className="guest-stepper-label">
               <strong>Guests</strong>
-              <span>Up to 6 guests per stay</span>
+              <span>Up to {maxGuests} guests per stay</span>
             </span>
             <span className="guest-stepper-controls">
               <button
@@ -63,7 +63,7 @@ export default function GuestPicker({ value, onChange }) {
               <button
                 type="button"
                 aria-label="Add one guest"
-                disabled={guestCount >= 6}
+                disabled={guestCount >= maxGuests}
                 onClick={() => onChange(String(guestCount + 1))}
               >+</button>
             </span>
@@ -75,6 +75,7 @@ export default function GuestPicker({ value, onChange }) {
           >Done</button>
         </span>
       )}
+      {name && <input type="hidden" name={name} value={value} />}
     </span>
   );
 }

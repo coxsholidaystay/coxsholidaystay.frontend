@@ -1,6 +1,8 @@
 node_modules/
 .next/
+.next-dev/
 .next-validation/
+*.tsbuildinfo
 out/
 dist/
 coverage/
